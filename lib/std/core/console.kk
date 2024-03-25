@@ -46,6 +46,7 @@ extern xprints( s : string) : console ()
   c  "kk_print"
   cs "Console.Write"
   js "_print"
+  vm "!sexp:(\"write(OutStream, String): Unit\" (\"getStdout(): OutStream\") $arg0:str)"
 
 // _Unsafe_. This function removes the state effect from the effect of an action
 inline extern unsafe-nostate( action : () -> <st<h>,console> a ) : (() -> console a)

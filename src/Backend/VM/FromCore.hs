@@ -65,7 +65,7 @@ genModule buildType mbMain imports core
         decls1 <- genTypeDefs (coreProgTypeDefs core)
         let -- `imports = coreProgImports core` is not enough due to inlined definitions
             (mainEntry) = case mbMain of
-                          Nothing -> appPrim "is a library" [] (tpe "Unit")
+                          Nothing -> appPrim "!undefined:is a library" [] (tpe "Unit")
                           Just (name,isAsync)
                             -> app (var (ppName name) (tFn "Effectful" [] (tpe "Unit"))) []
         return $
@@ -564,7 +564,7 @@ getFormat tname formats
   = case lookupTarget VM formats of  -- TODO: pass specific target from the flags
       Nothing -> -- failure ("backend does not support external in " ++ show tname ++ ": " ++ show formats)
                  trace( "warning: backend does not support external in " ++ show tname ) $
-                    ("undefined external: " ++ (show tname))
+                    ("!undefined: " ++ (show tname))
       Just s -> s
 
 genTName :: TName -> Asm Doc
@@ -824,7 +824,7 @@ appPrim name args tp = primitive [var (str "primitive_result") tp] name args (va
 
 -- | Pseudo-instruction for not-yet supported parts
 notImplemented :: Doc -> Doc
-notImplemented doc = appPrim ("Not implemented: " ++ show (asString doc)) [] (tpe "Bottom")
+notImplemented doc = appPrim ("!undefined: " ++ show (asString doc)) [] (tpe "Bottom")
 
 -- TODO other instructions
 

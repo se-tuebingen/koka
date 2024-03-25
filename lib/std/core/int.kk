@@ -45,41 +45,48 @@ pub inline fip extern (==)(^x : int, ^y : int) : bool
   c  "kk_integer_eq_borrow"
   cs inline "(#1 == #2)"
   js "$std_core_types._int_eq"
+  vm "infixEq(Int, Int): Boolean"
 
 // Are two integers not equal?
 pub inline fip extern (!=)(^x : int, ^y : int) : bool
   c  "kk_integer_neq_borrow"
   cs inline "(#1 != #2)"
   js "$std_core_types._int_ne"
+  vm "infixNeq(Int, Int): Boolean"
 
 // Is the first integer smaller or equal to the second?
 pub inline fip extern (<=)(^x : int, ^y : int) : bool
   c  "kk_integer_lte_borrow"
   cs inline "(#1 <= #2)"
   js "$std_core_types._int_le"
+  vm "infixLte(Int, Int): Boolean"
 
 // Is the first integer greater or equal to the second?
 pub inline fip extern (>=)(^x : int, ^y : int) : bool
   c  "kk_integer_gte_borrow"
   cs inline "(#1 >= #2)"
   js "$std_core_types._int_ge"
+  vm "infixGte(Int, Int): Boolean"
 
 // Is the first integer smaller than the second?
 pub inline fip extern (<)(^x : int, ^y : int) : bool
   c  "kk_integer_lt_borrow"
   cs inline "(#1 < #2)"
   js "$std_core_types._int_lt"
+  vm "infixLt(Int, Int): Boolean"
 
 // Is the first integer greater than the second?
 pub inline fip extern (>)(^x : int, ^y : int) : bool
   c  "kk_integer_gt_borrow"
   cs inline "(#1 > #2)"
   js "$std_core_types._int_gt"
+  vm "infixGt(Int, Int): Boolean"
 
 inline fip extern int-add : (int,int) -> int
   c  "kk_integer_add"
   cs inline "(#1 + #2)"
   js "$std_core_types._int_add"
+  vm "infixAdd(Int, Int): Int"
 
 // Add two integers.
 pub fip fun (+)(x : int, y : int ) : int
@@ -89,6 +96,7 @@ inline fip extern int-sub : (int,int) -> int
   c  "kk_integer_sub"
   cs inline "(#1 - #2)"
   js "$std_core_types._int_sub"
+  vm "infixSub(Int, Int): Int"
 
 // Substract two integers.
 pub fip fun (-)(x : int, y : int ) : int
@@ -99,18 +107,21 @@ pub inline fip extern (*) : (int,int) -> int
   c  "kk_integer_mul"
   cs inline "(#1 * #2)"
   js "$std_core_types._int_mul"
+  vm "infixMul(Int, Int): Int"
 
 // Euclidean-0 division of two integers. See also `divmod:(x : int, y : int) -> (int,int)`.
 pub inline fip extern (/)(x:int,y:int) : int
   c  "kk_integer_div"
   cs "Primitive.IntDiv"
   js "$std_core_types._int_div"
+  vm "infixDiv(Int, Int): Int"
 
 // Euclidean modulus of two integers; always a non-negative number. See also `divmod:(x : int, y : int) -> (int,int)`.
 pub inline fip extern (%)  : (int,int) -> int
   c  "kk_integer_mod"
   cs "Primitive.IntMod"
   js "$std_core_types._int_mod"
+  vm "mod(Int, Int): Int"
 
 /* Euclidean-0 division & modulus.
 Euclidean division is defined as: For any `D`  and `d`  where ``d!=0`` , we have:
@@ -135,6 +146,7 @@ pub fip extern divmod(x:int,y:int) : (int,int)
   c  "kk_integer_div_mod_tuple"
   cs "Primitive.IntDivMod"
   js "$std_core_types._int_divmod"
+  vm "!sexp:(prim ($d:int $m:int) (\"divmod(Int, Int): Int, Int\" $arg0:int $arg1:int) (make $divmodPair $divmodPair ($d:int $m:int)))"
 
 pub fip fun negate(i : int) : int
   ~i
@@ -144,24 +156,28 @@ pub inline fip extern (~)(i:int) : int
   c  "kk_integer_neg"
   cs inline "(-#1)"
   js "$std_core_types._int_negate"
+  vm "neg(Int): Int"
 
 // Is this an odd integer?
 pub inline fip extern is-odd( i : int ) : bool
   c  "kk_integer_is_odd"
   cs inline "!(#1.IsEven)"
   js "$std_core_types._int_isodd"
+  vm "!sexp:(\"infixEq(Int, Int): Boolean\" (\"mod(Int, Int): Int\" $arg0:int 2) 1)"
 
 // Is this equal to zero?
 pub inline fip extern is-zero( ^x : int) : bool
   c  inline "kk_integer_is_zero_borrow(#1)"
   cs inline "(#1.IsZero)"
   js "$std_core_types._int_iszero"
+  vm "!sexp:(\"infixEq(Int, Int): Boolean\" $arg0:int 0)"
 
 // Return the absolute value of an integer.
 pub inline fip extern abs(i : int) : int
   c  "kk_integer_abs"
   cs "BigInteger.Abs"
   js "$std_core_types._int_abs"
+  vm "abs(Int): Int"
 
 
 
@@ -259,6 +275,7 @@ pub extern show( i : int ) : string
   c "kk_integer_to_string"
   cs inline "#1.ToString()"
   js inline "#1.toString()"
+  vm "show(Int): String"
 
 // Convert an int to a boolean, using `False` for 0 and `True` otherwise.
 pub fun bool( i : int ) : bool
