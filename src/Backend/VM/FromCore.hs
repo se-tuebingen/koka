@@ -161,13 +161,13 @@ genTypeDef (Data info isExtend)
              penv <- getPrettyEnv
              let singletonValue val = def (var name (transformType (conInfoType c))) val
              if (conInfoName c == nameTrue)
-             then return $ obj [ "op" .= str "Literal", "type" .= str "Int", "value" .= text "1" ]
+             then return $ def (var name (tpe "Int")) $ obj [ "op" .= str "Literal", "type" .= tpe "Int", "value" .= text "1" ]
              else if (conInfoName c == nameFalse)
-             then return $ obj [ "op" .= str "Literal", "type" .= str "Int", "value" .= text "0" ]
+             then return $ def (var name (tpe "Int")) $ obj [ "op" .= str "Literal", "type" .= tpe "Int", "value" .= text "0" ]
              else return $ case repr of
                         -- special
                         ConEnum{}
-                          -> debugWrap ("enum ") $ obj ["op" .= str "Literal", "type" .= str "Int", "value" .= int (conTag repr)]
+                          -> def (var name (tpe "Int")) $ debugWrap ("enum ") $ obj ["op" .= str "Literal", "type" .= tpe "Int", "value" .= int (conTag repr)]
 --                         ConSingleton{} | conInfoName c == nameOptionalNone
 --                           -> null
 --                         ConSingleton _ DataStructAsMaybe _ _
@@ -181,27 +181,32 @@ genTypeDef (Data info isExtend)
           ) $ zip (dataInfoConstrs $ info) conReprs
   where
     null = var (text "-1") (tpe "Ptr")
+    genConstr penv c repr name tp []
+      = edef (var name tp) (debugWrap "genConstr" $
+             obj [ "op" .= str "Construct"
+                 , "type_tag" .= (getConTypeTag c)
+                 , "tag" .= name
+                 , "args" .= list []
+                 ]) 
+             [name]
     genConstr penv c repr name tp args
-      = def (var name tp) (debugWrap "genConstr" $
+      = edef (var name tp) (debugWrap "genConstr" $
              obj [ "op" .= str "Abs", "params" .= list args
                  , "body" .= obj [ "op" .= str "Construct"
                                  , "type_tag" .= (getConTypeTag c)
                                  , "tag" .= name
                                  , "args" .= list args
                                  ]
-                 ])
+                 ]) 
+             [name]
 
-getConTypeTag info = str $ show $ getReturn $ conInfoType info
-getReturn (TFun _ _ r) = r
+getConTypeTag info = str $ show $ getTConName $ getReturn $ conInfoType info
+  where 
+    getTConName (TCon c) = typeconName c
+getReturn (TFun _ _ r) = getReturn r
 getReturn (TForall _ _ t) = getReturn t
 getReturn (TApp t _) = getReturn t
-getReturn t = t
-getConTag modName coninfo repr
-  = case repr of
-      ConOpen{} -> -- ppLit (LitString (show (openConTag (conInfoName coninfo))))
-                   let name = toOpenTagName (conInfoName coninfo)
-                   in ppName (if (qualifier name == modName) then unqualify name else name)
-      _ -> int (conTag repr)
+getReturn r = r
 
 ---------------------------------------------------------------------------------
 -- Statements
@@ -378,7 +383,7 @@ genExpr expr
      App (Con _ repr) [arg]  | isConIso repr
        -> genExpr arg
      App (Var tname _) [Lit (LitInt i)]
-       -> return $ obj [ "op" .= str "Literal", "type" .= str "Int", "value" .= pretty i ]
+       -> return $ obj [ "op" .= str "Literal", "type" .= tpe "Int", "value" .= pretty i ]
 
      -- special: .cctx-field-addr-of: create a tuple with the object and the field name as a string
      App (TypeApp (Var cfieldOf _) [_]) [Var con _, Lit (LitString conName), Lit (LitString fieldName)]  | getName cfieldOf == nameFieldAddrOf
@@ -419,12 +424,8 @@ genExpr expr
                           , "body".= doc
                           ]
 
-     Case _ _
-       -> -- trace "Case" $ 
-          do (doc, tname) <- genVarBinding expr
-             nameDoc <- genTName tname
-             return $ notImplemented $ text "Case" -- (doc, nameDoc)
-
+     c@(Case _ _)
+       -> genExprStat c
      _ -> failure ("JavaScript.FromCore.genExpr: invalid expression:\n" ++ show expr)
 
 extractList :: Expr -> Maybe ([Expr],Expr)
@@ -774,7 +775,7 @@ ppModName name = encode True (name)
 
 encode :: Bool -> Name -> Doc
 encode isModule name
-  = text $ asciiEncode isModule $ show name
+  = text $ show name
 
 debugWrap     :: String -> Doc -> Doc
 debugWrap s d
