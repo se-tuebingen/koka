@@ -382,7 +382,7 @@ genExpr expr
        -> genExpr arg
      App (Con _ repr) [arg]  | isConIso repr
        -> genExpr arg
-     App (Var tname _) [Lit (LitInt i)]
+     App (Var tname _) [Lit (LitInt i)] | getName tname `elem` [nameInt32,nameSSizeT,nameInternalInt32,nameInternalSSizeT,nameInt64,nameIntPtrT,nameByte]
        -> return $ obj [ "op" .= str "Literal", "type" .= tpe "Int", "value" .= pretty i ]
 
      -- special: .cctx-field-addr-of: create a tuple with the object and the field name as a string
