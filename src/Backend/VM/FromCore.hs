@@ -396,12 +396,8 @@ genExpr expr
                   Nothing -> case extractExtern f of
                    Just (tname,formats)
                      -> case args of
-                         [Lit (LitInt i)] | getName tname == nameByte  && i >= 0 && i < 256
+                         [Lit (LitInt i)] | getName tname `elem` [nameByte, nameInt32,nameSSizeT,nameInternalInt32,nameInternalSSizeT, nameInt64, nameIntPtrT]
                            -> return (pretty i)
-                         [Lit (LitInt i)] | getName tname `elem` [nameInt32,nameSSizeT,nameInternalInt32,nameInternalSSizeT]  && isSmallInt i
-                           -> return (pretty i)
-                         [Lit (LitInt i)] | getName tname `elem` [nameInt64,nameIntPtrT]  && isSmallInt i
-                           -> return (pretty i <.> text "n")
                          _ -> -- genInlineExternal tname formats argDocs
                               do (argDocs) <- genExprs args
                                  (doc) <- genExprExternal tname formats argDocs

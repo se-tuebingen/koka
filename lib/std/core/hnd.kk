@@ -230,6 +230,7 @@ inline extern evv-set<e1,e>( w : evv<e1> ) : e ()
 pub extern @evv-is-affine() : bool
   c  inline "kk_evv_is_affine(kk_context())"
   js inline "$std_core_hnd._evv_is_affine_()"
+  vm "!sexp:0"
 
 
 // -----------------------------------------------------------------------------------
