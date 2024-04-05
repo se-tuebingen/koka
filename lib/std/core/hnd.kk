@@ -157,11 +157,12 @@ extern eq-marker( x : marker<e1,a1>, y : marker<e2,a2> ) : bool
 extern fresh-marker() : marker<e,a>
   c inline "kk_marker_unique(kk_context())"
   js inline "$marker_unique++"
+  vm "!sexp:(fresh-label)"
 
 extern fresh-marker-named() : marker<e,a>
   c inline  "-kk_marker_unique(kk_context())"
   js inline "-($marker_unique++)"
-
+  vm "!sexp:(fresh-label)"
 
 
 // -------------------------------------------
@@ -175,6 +176,7 @@ extern fresh-marker-named() : marker<e,a>
 extern evv-insert( evv : evv<e1>, ev : ev<h> ) : e1 evv<e2>
   c  "kk_evv_insert"
   js "_evv_insert"
+  vm "!sexp:(make $evv $cons ($arg1:ptr $arg0:ptr))"
 
 // show evidence for debug purposes
 extern evv-show( evv : evv<e> ) : string
@@ -186,6 +188,7 @@ extern evv-show( evv : evv<e> ) : string
 extern evv-eq(evv0 : evv<e>, evv1 : evv<e> ) : bool
   c  "kk_evv_eq"
   js inline "(#1) === (#2)"
+  vm "ptr_eq"
 
 
 // -------------------------------------------
@@ -196,6 +199,8 @@ extern evv-eq(evv0 : evv<e>, evv1 : evv<e> ) : bool
 pub inline extern @evv-at<e,h> ( i : ev-index ) : ev<h>  // pretend total; don't simplify
   c  "kk_evv_at"
   js "$std_core_hnd._evv_at"
+  vm "!sexp:(letrec ((define $elt:top (lambda ($l:ptr $n:int) (switch $n:int (0 (project $l:ptr $evv $cons 0)) (_ ($elt:top (project $l:ptr $evv $cons 1) (\"infixSub(Int, Int): Int\" $n:int 1))))) )) ($elt:top (\"getRef(Ref[Ptr]): Ptr\" (\"getGlobal(String): Ptr\" \"current-evv\")) $arg0:int))"
+  // TODO move elt to extern file
 
 // (dynamically) find evidence insertion/deletion index in the evidence vector
 // The compiler optimizes `@evv-index` to a static index when apparent from the effect type.
@@ -207,11 +212,13 @@ pub extern @evv-index<e::E,h>( htag : htag<h> ) : e ev-index
 extern evv-get() : e evv<e>
   c  "kk_evv_get"
   js "$std_core_hnd._evv_get"
+  vm "!sexp:(\"getRef(Ref[Ptr]): Ptr\" (\"getGlobal(String): Ptr\" \"current-evv\"))"
 
 // Set the current evidence vector.
 inline extern evv-set<e1,e>( w : evv<e1> ) : e ()
   c  "kk_evv_set"
   js "$std_core_hnd._evv_set"
+  vm "!sexp:(\"setRef(Ref[Ptr], Ptr): Unit\" (\"getGlobal(String): Ptr\" \"current-evv\") $arg0:ptr)"
 
 // Does the current evidence vector consist solely of affine handlers?
 // This is called in backends that do not have context paths (like javascript)
@@ -276,10 +283,12 @@ extern evv-swap-create( indices : vector<ev-index> ) : e evv<e>  //not quite the
 pub inline extern yielding() : bool
   c  "kk_yielding"
   js "$std_core_hnd._yielding"
+  vm "!sexp:0"
 
 pub inline extern yielding-non-final() : bool
   c  "kk_yielding_non_final"
   js "$std_core_hnd._yielding_non_final"
+  vm "!sexp:0"
 
 pub noinline extern yield-extend(next : a -> e b ) : e b
   c  "kk_yield_extend"
@@ -302,10 +311,17 @@ inline extern keep-yielding-final() : e r
 extern yield-prompt( m: marker<e,r> ) : yld<e,a,r>
   c  "kk_yield_prompt"
   js "_yield_prompt"
+  vm "!sexp:(reset ($arg0:ptr $ignore:ptr) $std/core/hnd/Pure:ptr (($ret:ptr) $ret:ptr))"
 
 extern yield-to-prim( m : marker<e1,r>, clause : (resume-result<b,r> -> e1 r) -> e1 r ) : e (() -> b)
   c  "kk_yield_to"
   js "$std_core_hnd._yield_to"
+
+extern @yield-to-prim-vm( m : marker<e1,r>, clause : (b -> e1 r) -> e1 r ) : e b
+  vm "!sexp:(debugWrap \"yield-to-prim\" (shift:top ($arg0:ptr 0) ($resume:ptr) ($arg1:ptr (lambda ($val:ptr) (debugWrap \"Resuming\" (resume $resume:ptr $val:ptr) ) )))) )"
+
+extern @not_implemented() : a
+  vm "!undefined:Not implemented."
 
 extern yield-to-final( m : marker<e1,r>, clause : (resume-result<b,r> -> e1 r) -> e1 r ) : e b
   c  "kk_yield_final"
@@ -317,6 +333,10 @@ noinline fun yield-to( m : marker<e1,r>, clause : (resume-result<b,r> -> e1 r) -
   yield-extend fn(f)
     // val keep1 = guard(w0)  // check the evidence is correctly restored
     f()
+
+noinline fun @yield-to-vm( m : marker<e1,r>, clause : (b -> e1 r) -> e1 r ) : e1 b
+  //val w0 = evv-get()
+  @yield-to-prim-vm(m, clause)
 
 pub type yield-info
 
@@ -416,6 +436,20 @@ pub noinline fun @hhandle( tag:htag<h>, h : h<e,r>, ret: a -> e r, action : () -
   // call action first (this may be yielding), then check the result
   prompt(w0,w1,ev,m,ret,cast-ev0(action)())
 
+extern @reset-vm( m : marker<e0,r>, ret : a -> e0 r, action : () -> e0 a) : e0 r
+  vm "!sexp:(debugWrap \"reset\" (reset ($arg0:ptr $ignore:ptr) ($arg2:ptr) (($res:top) ($arg1:ptr $res:top)) ) )"
+
+pub noinline fun @hhandle-vm( tag:htag<h>, h : h<e,r>, ret: a -> e r, action : () -> e1 a ) : e r
+  // insert new evidence for our handler
+  val w0 = evv-get()
+  val m  = fresh-marker()
+  val ev = Ev(tag,m,h,w0)
+  val w1 = evv-insert(w0,ev)
+  evv-set(w1)
+  val res = @reset-vm(m,ret,cast-ev0(action))
+  evv-set(w0)
+  res
+
 // -------------------------------------------
 // named handler
 // (which is not inserted into the evidence vector)
@@ -427,6 +461,7 @@ pub noinline fun @named-handle( tag:htag<h>, h : h<e,r>, ret: a -> e r, action :
   val ev = Ev(tag,m,h,w0)
   prompt(w0,w0,ev,m,ret,cast-ev1(action)(ev))
 
+// TODO define @named-handle-vm to make this work
 
 // -------------------------------------------
 // mask
@@ -508,6 +543,7 @@ inline extern eq( ^x : int, ^y : int) : bool
   c  "kk_integer_eq_borrow"
   cs inline "(#1 == #2)"
   js inline "(#1 == #2)" // $std_core_types._int_eq"
+  vm "infixEq(Int, Int): Int"
 
 
 pub fun initially(init : (int) -> e (), action : () -> e a ) : e a
@@ -556,6 +592,7 @@ abstract value type clause1<a::V,b::V,h::(E,V)->V,e::E,r::V>
 
 inline extern cast-clause0( f : (marker<e1,r>,ev<h>) -> e1 b) : e ((marker<e1,r>,ev<h>) -> e b)
   inline "#1"
+  vm "!sexp:(debugWrap \"cast-clause0\" $arg0:ptr)"
 
 inline extern cast-clause1( f : (marker<e1,r>,ev<h>,a) -> e1 b) : e ((marker<e1,r>,ev<h>,a) -> e b)
   inline "#1"
@@ -605,7 +642,7 @@ fun protect-check( resumed : ref<global,bool>,  k : resume-result<b,r> -> e r, r
    then k(Finalize(res)) //finalize(k,res)
    else res
 
-fun protect( x : a, clause : (x:a, k: b -> e r) -> e r, k : resume-result<b,r> -> e r ) : e r
+noinline fun protect( x : a, clause : (x:a, k: b -> e r) -> e r, k : resume-result<b,r> -> e r ) : e r
   val resumed = (unsafe-st{ref(False)})()
   fun kprotect(ret)
     (unsafe-st{resumed := True})()
@@ -613,6 +650,9 @@ fun protect( x : a, clause : (x:a, k: b -> e r) -> e r, k : resume-result<b,r> -
   val res = clause(x,kprotect)
   if yielding() return yield-extend( fn(xres) protect-check(resumed,k,xres) )
   protect-check(resumed,k,res)
+
+noinline fun @protect-vm( x : a, clause : (x:a, k: b -> e r) -> e r, k : b -> e r) : e r
+  clause(x, k)
 
 /*
 pub fun clause-control1( clause : (x:a, k: b -> e r) -> e r ) : clause1<a,b,e,r>

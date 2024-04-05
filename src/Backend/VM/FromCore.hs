@@ -34,6 +34,7 @@ import Common.Syntax
 import Core.Core
 import Core.Pretty
 import Core.CoreVar
+import Data.Tuple (swap)
 
 type ConditionDoc = Doc -> Doc -- `cd thn` gets you the doc; expects to be in an alternative-choice
 
@@ -46,6 +47,9 @@ externalNames
     , (conName exprFalse, text "false")
     , (TName nameOptionalNone typeOptional, text "undefined")  -- ugly but has real performance benefit
     ]
+
+intTypes :: [Name]
+intTypes = [nameTpSSizeT,nameInt16,nameInt64,nameInt32,nameSSizeT,nameInternalInt32,nameInternalSSizeT,nameIntPtrT,nameByte,nameTpEvIndex]
 
 --------------------------------------------------------------------------
 -- Generate JavaScript code from System-F core language
@@ -60,14 +64,19 @@ vmFromCore buildType mbMain imports core
 
 genModule :: BuildType -> Maybe (Name,Bool) -> [Import] -> Core -> Asm Doc
 genModule buildType mbMain imports core
-  =  do impdecls <- genLoadLibs imports
+  =  do rememberDataInfos (coreProgTypeDefs core)
+        impdecls <- genLoadLibs imports
         decls0 <- genGroups True (coreProgDefs core)
         decls1 <- genTypeDefs (coreProgTypeDefs core)
         let -- `imports = coreProgImports core` is not enough due to inlined definitions
             (mainEntry) = case mbMain of
                           Nothing -> appPrim "!undefined:is a library" [] (tpe "Unit")
                           Just (name,isAsync)
-                            -> app (var (ppName name) (tFn "Effectful" [] (tpe "Unit"))) []
+                            -> obj [ "op" .= str "Seq"
+                                   , "elems" .= list [ appPrim "!sexp:(\"setGlobal(String, Ptr): Unit\" \"current-evv\" (\"mkRef(Ptr): Ref[Ptr]\" (make $evv $nil ())))" [] (tpe "Unit")
+                                                     , app (var (ppName name) (tFn "Effectful" [] (tpe "Unit"))) []
+                                                     ]
+                                   ]
         return $
                     obj
                     [ "metadata" .= 
@@ -105,6 +114,7 @@ transformType (TFun ps e t) = obj [ "op" .= str "Function"
                                   , "return" .= transformType t
                                   , "purity" .= str "Effectful" -- TODO infer from e
                                   ]
+transformType (TCon c) | (typeConName c) `elem` intTypes = tpe "Int"
 transformType (TCon c) | nameModule (typeConName c) == "std/core/types" = case (nameStem (typeConName c)) of 
   "unit" -> tpe "Unit" 
   "string" -> tpe "String"
@@ -129,12 +139,32 @@ genGroup topLevel group
       DefRec defs   -> mapM (genDef topLevel) defs
       DefNonRec def -> (:[]) <$> genDef topLevel def
 
+switchNames :: [(Name, Name)]
+switchNames = 
+  [ (nameHandle, nameHandleVM)
+  -- , (nameNamedHandle, nameNamedHandleVM)
+  , (nameYieldTo, nameYieldToVM)
+  , (nameProtect, nameProtectVM)
+  ]
+
 genDef :: Bool -> Def -> Asm Doc
+genDef topLevel (Def name tp expr vis sort inl rng comm) | name `elem` (map fst switchNames)
+  = do let Just nameNew = lookup name switchNames
+       let n = var (ppName nameNew) (transformType tp)
+       let e = ppName nameNew
+       v <- genExpr expr
+       return $ edef n (debugWrap ("Def of " ++ show n) v) [e]
+genDef topLevel (Def name tp expr vis sort inl rng comm) | name `elem` (map snd switchNames)
+  = do let Just nameNew = lookup name (map swap switchNames)
+       let n = var (ppName nameNew) (transformType tp)
+       let e = ppName nameNew
+       v <- genExpr expr
+       return $ edef n (debugWrap ("Def of " ++ show n) v) [e]
 genDef topLevel (Def name tp expr vis sort inl rng comm)
   = do let n = var (ppName name) (transformType tp)
        let e = ppName name
        v <- genExpr expr
-       return $ edef n v [e]
+       return $ edef n (debugWrap ("Def of " ++ show n) v) [e]
 
 ---------------------------------------------------------------------------------
 -- Generate value constructors for each defined type
@@ -166,8 +196,8 @@ genTypeDef (Data info isExtend)
              then return $ def (var name (tpe "Int")) $ obj [ "op" .= str "Literal", "type" .= tpe "Int", "value" .= text "0" ]
              else return $ case repr of
                         -- special
-                        ConEnum{}
-                          -> def (var name (tpe "Int")) $ debugWrap ("enum ") $ obj ["op" .= str "Literal", "type" .= tpe "Int", "value" .= int (conTag repr)]
+--                        ConEnum{}
+--                          -> def (var name (tpe "Int")) $ debugWrap ("enum ") $ obj ["op" .= str "Literal", "type" .= tpe "Int", "value" .= int (conTag repr)]
 --                         ConSingleton{} | conInfoName c == nameOptionalNone
 --                           -> null
 --                         ConSingleton _ DataStructAsMaybe _ _
@@ -320,8 +350,8 @@ genMatch scrutinees branches
                 | otherwise
                 -> case repr of
                      -- special
-                     ConEnum _ _ _ tag
-                       -> return ([ifEqInt scrutinee (int tag)], [])
+--                     ConEnum _ _ _ tag
+--                       -> return ([ifEqInt scrutinee (int tag)], [])
 --                      ConSingleton{}
 --                        | getName tn == nameOptionalNone
 --                        -> [ifNull scrutinee]
@@ -370,6 +400,7 @@ genMatch scrutinees branches
 genExpr :: Expr -> Asm Doc
 genExpr expr
   = -- trace ("genExpr: " ++ show expr) $
+    fmap (debugWrap ("genExpr: " ++ show expr)) $
     case expr of
      -- check whether the expression is pure an can be inlined
      _  | isInlineableExpr expr -> genInline expr
@@ -378,11 +409,7 @@ genExpr expr
      TypeLam _ e -> genExpr e
 
      -- handle not inlineable cases
-     App (TypeApp (Con name repr) _) [arg]  | getName name == nameOptional || isConIso repr
-       -> genExpr arg
-     App (Con _ repr) [arg]  | isConIso repr
-       -> genExpr arg
-     App (Var tname _) [Lit (LitInt i)] | getName tname `elem` [nameInt32,nameSSizeT,nameInternalInt32,nameInternalSSizeT,nameInt64,nameIntPtrT,nameByte]
+     App (Var tname _) [Lit (LitInt i)] | getName tname `elem` intTypes
        -> return $ obj [ "op" .= str "Literal", "type" .= tpe "Int", "value" .= pretty i ]
 
      -- special: .cctx-field-addr-of: create a tuple with the object and the field name as a string
@@ -672,6 +699,7 @@ runAsm initEnv (Asm asm)
       (doc,st) -> doc
 
 data St  = St  { uniq     :: Int
+               , dataInfos :: [(Name,DataInfo)]
                }
 
 data Env = Env { moduleName        :: Name                    -- | current module
@@ -679,7 +707,7 @@ data Env = Env { moduleName        :: Name                    -- | current modul
                , substEnv          :: [(TName, Doc)]          -- | substituting names
                }
 
-initSt = St 0
+initSt = St 0 []
 
 instance HasUnique Asm where
   updateUnique f
@@ -696,6 +724,15 @@ localUnique asm
        x <- asm
        setUnique u
        return x
+
+findDataInfo :: Name -> Asm (Maybe DataInfo)
+findDataInfo n = Asm (\env st -> ((lookup n $ dataInfos st), st))
+
+rememberDataInfos :: TypeDefGroups -> Asm ()
+rememberDataInfos = mapM_ onGroups
+  where onGroups (TypeDefGroup tds) = mapM_ onTypeDef tds
+        onTypeDef d = remember (typeDefDataInfo d)
+        remember d = Asm (\env st -> ((), st{dataInfos = (dataInfoName d, d):(dataInfos st)}))
 
 newVarName :: String -> Asm Name
 newVarName s
@@ -730,11 +767,10 @@ ppLit :: Lit -> Doc
 ppLit lit
     = case lit of
       LitInt i    -> obj [ "op" .= str "Literal", "type" .= tpe "Int", "value" .= pretty i ]
-      LitChar c   -> obj [ "op" .= str "Literal", "type" .= tpe "String", "value" .= dquotes (escape c)] 
+      LitChar c   -> litStr [c]
       LitFloat d  -> obj [ "op" .= str "Literal", "type" .= tpe "Double", "value" .= text (showsPrec 20 d "") ]
-      LitString s -> obj [ "op" .= str "Literal", "type" .= tpe "String", "value" .= dquotes (hcat (map escape s)) ]
-    where
-      escape c
+      LitString s -> litStr s
+escape c
         = if (c < ' ')
            then (if (c=='\n') then text "\\n"
                  else if (c == '\r') then text "\\r"
@@ -817,6 +853,9 @@ appPrim :: String -- ^ name
         -> Doc    -- ^ return type
         -> Doc
 appPrim name args tp = primitive [var (str "primitive_result") tp] name args (var (str "primitive_result") tp)
+
+litStr :: String -> Doc
+litStr s = obj [ "op" .= str "Literal", "type" .= tpe "String", "value" .= dquotes (hcat (map escape s)) ]
 
 -- | Pseudo-instruction for not-yet supported parts
 notImplemented :: Doc -> Doc

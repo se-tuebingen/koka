@@ -305,6 +305,7 @@ pub fip extern @make-ssize_t( i : int) : ssize_t
 // Append two strings
 pub extern (++)(x : string, y : string) : string
   c "kk_string_cat"
+  vm "infixConcat(String, String): String"
   inline "(#1 + #2)"
 
 
