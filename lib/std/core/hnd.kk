@@ -318,7 +318,7 @@ extern yield-to-prim( m : marker<e1,r>, clause : (resume-result<b,r> -> e1 r) ->
   js "$std_core_hnd._yield_to"
 
 extern @yield-to-prim-vm( m : marker<e1,r>, clause : (b -> e1 r) -> e1 r ) : e b
-  vm "!sexp:(debugWrap \"yield-to-prim\" (shift:top ($arg0:ptr 0) ($resume:ptr) ($arg1:ptr (lambda ($val:ptr) (debugWrap \"Resuming\" (resume $resume:ptr $val:ptr) ) )))) )"
+  vm "!sexp:(debugWrap \"yield-to-prim\" (shift:top ($arg0:ptr 0) ($resume:ptr) ($arg1:ptr (lambda ($val:top) (debugWrap \"Resuming\" (resume $resume:ptr $val:top) ) )))) )"
 
 extern @not_implemented() : a
   vm "!undefined:Not implemented."
