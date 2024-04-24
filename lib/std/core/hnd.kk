@@ -437,7 +437,7 @@ pub noinline fun @hhandle( tag:htag<h>, h : h<e,r>, ret: a -> e r, action : () -
   prompt(w0,w1,ev,m,ret,cast-ev0(action)())
 
 extern @reset-vm( m : marker<e0,r>, ret : a -> e0 r, action : () -> e0 a) : e0 r
-  vm "!sexp:(debugWrap \"reset\" (reset ($arg0:ptr $ignore:ptr) ($arg2:ptr) (($res:top) ($arg1:ptr $res:top)) ) )"
+  vm "!sexp:(debugWrap \"reset\" (reset ($arg0:ptr $ignore:ptr) (let ((define $ret:top ($arg2:ptr))) $ret:top) (($res:top) (debugWrap \"returnClause\" ($arg1:ptr $res:top) ) ) ) )"
 
 pub noinline fun @hhandle-vm( tag:htag<h>, h : h<e,r>, ret: a -> e r, action : () -> e1 a ) : e r
   // insert new evidence for our handler

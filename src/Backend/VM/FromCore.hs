@@ -43,10 +43,7 @@ debug  = True
 
 externalNames :: [(TName, Doc)]
 externalNames
-  = [ (conName exprTrue,  text "true")
-    , (conName exprFalse, text "false")
-    , (TName nameOptionalNone typeOptional, text "undefined")  -- ugly but has real performance benefit
-    ]
+  = []
 
 intTypes :: [Name]
 intTypes = [nameTpSSizeT,nameInt16,nameInt64,nameInt32,nameSSizeT,nameInternalInt32,nameInternalSSizeT,nameIntPtrT,nameByte,nameTpEvIndex]
