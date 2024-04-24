@@ -44,6 +44,7 @@ extern os-get-argv() : ndet vector<string>
   c  "kk_os_get_argv"
   cs "System.Environment.GetCommandLineArgs"
   js inline "(typeof process !== 'undefined' ? process.argv : [])"
+  vm "getArgs(): Array[String]"
 
 
 // The unprocessed command line that was used to start this program.

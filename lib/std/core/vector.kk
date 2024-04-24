@@ -28,6 +28,7 @@ inline extern unsafe-idx( ^v : vector<a>, index : ssize_t ) : total a
   c  "kk_vector_at_borrow"
   cs inline "(#1)[#2]"
   js inline "(#1)[#2]"
+  vm "unsafeIndex(Array[Ptr], Int): Ptr"
 
 inline extern unsafe-assign : forall<a> ( v : vector<a>, i : ssize_t, x : a ) -> total ()
   c "kk_vector_unsafe_assign"
@@ -50,6 +51,7 @@ inline extern lengthz( ^v : vector<a> ) : ssize_t
   c  "kk_vector_len_borrow"
   cs inline "((#1).Length)"
   js inline "((#1).length)"
+  vm "length(Array[Ptr]): Int"
 
 // Create a new vector of length `n`  with initial elements `init`` .
 extern vector-alloc(n : ssize_t, init : a) : e vector<a>
