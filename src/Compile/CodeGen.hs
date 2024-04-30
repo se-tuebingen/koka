@@ -279,7 +279,8 @@ codeGenVM term flags sequential entry outBase core
        writeDocW 80 outmcore vm
        when (showAsmVM flags) (termInfo term vm)
 
-       runCommand term flags [rpyeffectAsm flags, "--from", "mcore-json", outmcore, outrpy]
+       -- FIXME: for now, use debug flags
+       runCommand term flags [rpyeffectAsm flags, "--debug", "--check-contracts", "--from", "mcore-json", outmcore, outrpy]
 
        case mbEntry of
         Nothing -> return noLink

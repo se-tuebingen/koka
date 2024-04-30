@@ -62,6 +62,7 @@ vmFromCore buildType mbMain imports core
 genModule :: BuildType -> Maybe (Name,Bool) -> [Import] -> Core -> Asm Doc
 genModule buildType mbMain imports core
   =  do rememberDataInfos (coreProgTypeDefs core)
+        let externIncludes = concatMap (genExternInclude buildType) (coreProgExternals core)
         impdecls <- genLoadLibs imports
         decls0 <- genGroups True (coreProgDefs core)
         decls1 <- genTypeDefs (coreProgTypeDefs core)
@@ -81,13 +82,23 @@ genModule buildType mbMain imports core
                           , "koka version" .= str version
                           , "program name" .= str (show (coreProgName core))
                           ]
+                    , "includes" .= list externIncludes
                     , "definitions" .=
-                      list (impdecls 
+                      list (  impdecls 
                            ++ decls0 
                            ++ decls1
                            )
                     , "main" .= mainEntry
                     ]
+---------------------------------------------------------------------------------
+-- Extern includes
+---------------------------------------------------------------------------------
+genExternInclude :: BuildType -> External -> [Doc]
+genExternInclude buildType (e@ExternalImport{}) = 
+  case externalImportLookup VM buildType "include-inline" e of
+    Just content -> [obj ["format" .= str "sexp", "value" .= str content]]
+    Nothing -> []
+genExternInclude _ _ = []
 
 ---------------------------------------------------------------------------------
 -- Generate import definitions
@@ -429,13 +440,9 @@ genExpr expr
                                   then return (text "")
                                   else return (doc)
                    Nothing
-                    -> do lsDecls <- genExprs (f:trimOptionalArgs args)
+                    -> do lsDecls <- genExprs (f:args)
                           let (fdoc:docs) = lsDecls
-                          return $ obj [ "op" .= str "App"
-                                       , "fn" .= fdoc
-                                       , "args" .= list docs
-                                       ]
-
+                          return $ app fdoc docs
      Let groups body
        -> do decls1       <- genGroups False groups
              (doc) <- genExpr body
@@ -524,12 +531,12 @@ genInline expr
       _  | isPureExpr expr -> genPure expr
       TypeLam _ e -> genInline e
       TypeApp e _ -> genInline e
-      App (TypeApp (Con name repr) _) [arg]  | getName name == nameOptional || isConIso repr
+      App (TypeApp (Con name repr) _) [arg]  | isConIso repr
         -> genInline arg
       App (Con _ repr) [arg]  | isConIso repr
         -> genInline arg
       App f args
-        -> do argDocs <- mapM genInline (trimOptionalArgs args)
+        -> do argDocs <- mapM genInline args
               case extractExtern f of
                 Just (tname,formats)
                   -> case args of
@@ -541,10 +548,7 @@ genInline expr
                        ((Var tname _),[Lit (LitInt i)]) | getName tname `elem` [nameInt32,nameSSizeT,nameInternalInt32,nameInternalSSizeT,nameInt64,nameIntPtrT] && isSmallInt i
                          -> return (pretty i)
                        _ -> do fdoc <- genInline f
-                               return $ obj [ "op" .= str "App"
-                                            , "fn" .= fdoc
-                                            , "args" .= list argDocs
-                                            ]
+                               return $ app fdoc argDocs
       _ -> failure ("VM.FromCore.genInline: invalid expression:\n" ++ show expr)
 
 extractExtern :: Expr -> Maybe (TName,[(Target,String)])
@@ -612,14 +616,6 @@ genVarNames :: [Type] -> Asm [Doc]
 genVarNames ts = do ns <- newVarNames (length ts)
                     let tns = zipWith TName ns ts
                     mapM genTName tns
-
-trimOptionalArgs args
-  = reverse (dropWhile isOptionalNone (reverse args))
-  where
-    isOptionalNone arg
-      = case arg of
-          TypeApp (Con tname _) _ -> getName tname == nameOptionalNone
-          _ -> False
 
 ---------------------------------------------------------------------------------
 -- Classification
@@ -830,7 +826,7 @@ obj = encloseSep lbrace rbrace comma
 -- Smart-constructors for instructions
 --------------------------------------------------------------------------------
 app :: Doc -> [Doc] -> Doc
-app fn args = obj [ "op" .= text "\"App\""
+app fn args = obj [ "op" .= str "App"
                   , "fn" .= fn
                   , "args" .= list args
                   ]

@@ -23,6 +23,7 @@ import std/core/types
 extern import
   c  file "inline/int.h"
   js file "inline/int.js"
+  vm file "inline/int.mcore.sexp"
 
 pub fip fun order( i : int ) : order
   if i < 0 then Lt
@@ -302,14 +303,14 @@ pub fip fun mbint( m : maybe<int> ) : int
 // An empty string, or a string starting with white space will result in `Nothing`
 // A string can start with a `-` sign for negative numbers,
 // and with `0x` or `0X` for hexadecimal numbers (in which case the `hex` parameter is ignored).
-pub fun parse-int( s : string, hex : bool = False) : maybe<int>
+pub noinline fun parse-int( s : string, hex : bool = False) : maybe<int>
   s.xparse(hex)
 
 noinline extern xparse( s : string, hex : bool ) : maybe<int>
   c  "kk_integer_xparse"
   cs "Primitive.IntParse"
   js "_int_parse"
-
+  vm "!sexp:($xparseImpl:(fun Pure (ptr int) ptr) $arg0:ptr $arg1:int)"
 
 
 // ----------------------------------------------------------------------------

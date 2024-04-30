@@ -18,6 +18,7 @@ import std/core/int
 extern import
   c  file "inline/vector"
   js file "inline/vector.js"
+  vm file "inline/vector.mcore.sexp"
 
 // ----------------------------------------------------------------------------
 //  Vectors
@@ -138,6 +139,7 @@ pub extern vlist( v : vector<a>, tail : list<a> = [] ) : list<a>
   c  "kk_vector_to_list"
   cs inline "Primitive.VList<##1>(#1,#2)"
   js inline "_vlist(#1,#2)"
+  vm "!sexp:($vectorToList:top $arg0:ptr $arg1:ptr (\"length(Array[Ptr]): Int\" $arg0:ptr))"
 
 // Convert a list to a vector.
 pub fun list/vector( xs : list<a> ) : vector<a>

@@ -109,6 +109,7 @@ import std/core/undiv
 extern import
   c  file "inline/hnd"
   js file "inline/hnd.js"
+  vm file "inline/hnd.mcore.sexp"
 
 // -------------------------------------------
 // Internal types
@@ -199,8 +200,7 @@ extern evv-eq(evv0 : evv<e>, evv1 : evv<e> ) : bool
 pub inline extern @evv-at<e,h> ( i : ev-index ) : ev<h>  // pretend total; don't simplify
   c  "kk_evv_at"
   js "$std_core_hnd._evv_at"
-  vm "!sexp:(letrec ((define $elt:top (lambda ($l:ptr $n:int) (switch $n:int (0 (project $l:ptr $evv $cons 0)) (_ ($elt:top (project $l:ptr $evv $cons 1) (\"infixSub(Int, Int): Int\" $n:int 1))))) )) ($elt:top (\"getRef(Ref[Ptr]): Ptr\" (\"getGlobal(String): Ptr\" \"current-evv\")) $arg0:int))"
-  // TODO move elt to extern file
+  vm "!sexp:((qualified $\"import$std/core/hnd\":ptr \"elt\" (fun Pure (ptr int) ptr)) ((qualified $\"import$std/core/hnd\":ptr \"getCurrentEvv\" (fun Effectful () ptr))) $arg0:int)"
 
 // (dynamically) find evidence insertion/deletion index in the evidence vector
 // The compiler optimizes `@evv-index` to a static index when apparent from the effect type.
@@ -212,13 +212,13 @@ pub extern @evv-index<e::E,h>( htag : htag<h> ) : e ev-index
 extern evv-get() : e evv<e>
   c  "kk_evv_get"
   js "$std_core_hnd._evv_get"
-  vm "!sexp:(\"getRef(Ref[Ptr]): Ptr\" (\"getGlobal(String): Ptr\" \"current-evv\"))"
+  vm "!sexp:($getCurrentEvv:(fun Effectful () ptr))"
 
 // Set the current evidence vector.
 inline extern evv-set<e1,e>( w : evv<e1> ) : e ()
   c  "kk_evv_set"
   js "$std_core_hnd._evv_set"
-  vm "!sexp:(\"setRef(Ref[Ptr], Ptr): Unit\" (\"getGlobal(String): Ptr\" \"current-evv\") $arg0:ptr)"
+  vm "!sexp:((qualified $\"import$std/core/hnd\":ptr \"setCurrentEvv\" (fun Effectful (ptr) unit)) $arg0:ptr)"
 
 // Does the current evidence vector consist solely of affine handlers?
 // This is called in backends that do not have context paths (like javascript)
@@ -249,6 +249,7 @@ pub extern @evv-is-affine() : bool
 inline extern evv-swap<e1,e2>( w : evv<e1> ) : e evv<e2>
   c  "kk_evv_swap"
   js "$std_core_hnd._evv_swap"
+  vm "!sexp:((qualified $\"import$std/core/hnd\":ptr \"swapCurrentEvv\" (fun Effectful (ptr) ptr)) $arg0:ptr)"
 
 // Remove evidence at index `i` of the current evidence vector, and return the old one.
 // (used by `mask`)
@@ -437,7 +438,7 @@ pub noinline fun @hhandle( tag:htag<h>, h : h<e,r>, ret: a -> e r, action : () -
   prompt(w0,w1,ev,m,ret,cast-ev0(action)())
 
 extern @reset-vm( m : marker<e0,r>, ret : a -> e0 r, action : () -> e0 a) : e0 r
-  vm "!sexp:(debugWrap \"reset\" (reset ($arg0:ptr $ignore:ptr) (let ((define $ret:top ($arg2:ptr))) $ret:top) (($res:top) (debugWrap \"returnClause\" ($arg1:ptr $res:top) ) ) ) )"
+  vm "!sexp:(debugWrap \"reset\" (reset ($arg0:ptr $ignore:ptr) (the top ($arg2:ptr)) (($res:top) (debugWrap \"returnClause\" ($arg1:ptr $res:top) ) ) ) )"
 
 pub noinline fun @hhandle-vm( tag:htag<h>, h : h<e,r>, ret: a -> e r, action : () -> e1 a ) : e r
   // insert new evidence for our handler
@@ -537,6 +538,7 @@ inline extern add(i : int, j : int) : int
   c  "kk_integer_add"
   cs inline "(#1 + #2)"
   js inline "(#1 + #2)" // "$std_core_types._int_add"
+  vm "infixAdd(Int, Int): Int"
 
 // are two integers equal?
 inline extern eq( ^x : int, ^y : int) : bool
