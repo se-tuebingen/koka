@@ -320,9 +320,8 @@ extern yield-to-prim( m : marker<e1,r>, clause : (resume-result<b,r> -> e1 r) ->
 
 extern @yield-to-prim-vm( m : marker<e1,r>, clause : (b -> e1 r) -> e1 r ) : e b
   vm "!sexp:(debugWrap \"yield-to-prim\" (shift:top ($arg0:ptr 0) ($resume:ptr) ($arg1:ptr (lambda ($val:top) (debugWrap \"Resuming\" (resume $resume:ptr $val:top) ) )))) )"
-
-extern @not_implemented() : a
-  vm "!undefined:Not implemented."
+  c inline "kk_box_null()"
+  js inline "undefined"
 
 extern yield-to-final( m : marker<e1,r>, clause : (resume-result<b,r> -> e1 r) -> e1 r ) : e b
   c  "kk_yield_final"
@@ -438,6 +437,8 @@ pub noinline fun @hhandle( tag:htag<h>, h : h<e,r>, ret: a -> e r, action : () -
   prompt(w0,w1,ev,m,ret,cast-ev0(action)())
 
 extern @reset-vm( m : marker<e0,r>, ret : a -> e0 r, action : () -> e0 a) : e0 r
+  c inline "kk_box_null()"
+  js inline "undefined"
   vm "!sexp:(debugWrap \"reset\" (reset ($arg0:ptr $ignore:ptr) (the top ($arg2:ptr)) (($res:top) (debugWrap \"returnClause\" ($arg1:ptr $res:top) ) ) ) )"
 
 pub noinline fun @hhandle-vm( tag:htag<h>, h : h<e,r>, ret: a -> e r, action : () -> e1 a ) : e r
