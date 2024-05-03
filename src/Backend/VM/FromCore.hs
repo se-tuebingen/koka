@@ -259,7 +259,7 @@ genExprStat expr
         -> do exprDoc <- genInline expr
               return exprDoc
 
-      Case exprs branches
+      caseExpr@(Case exprs branches)
          -> do (defss, scrutinees) <-  unzip <$> mapM (\e-> if isInlineableExpr e && isTypeBool (typeOf e)
                                                                then do d       <- genInline e
                                                                        return ([], d)
@@ -267,7 +267,7 @@ genExprStat expr
                                                                        vd <- genTName vn
                                                                        return (sd, vd)
                                                        ) exprs
-               doc                <- genMatch scrutinees branches
+               doc                <- genMatch scrutinees branches (typeOf caseExpr)
                return $ obj [ "op" .= str "LetRec"
                             , "definitions" .= list (concat defss)
                             , "body" .= doc
@@ -286,8 +286,8 @@ genExprStat expr
               return exprDoc
 
 -- | Generates a statement for a match expression regarding a given return context
-genMatch :: [Doc] -> [Branch] -> Asm Doc
-genMatch scrutinees branches
+genMatch :: [Doc] -> [Branch] -> Type -> Asm Doc
+genMatch scrutinees branches atTpe
   = fmap (debugWrap "genMatch") $ do
     case branches of
         []  -> fail ("Backend.VM.FromCore.genMatch: no branch in match statement: " ++ show(scrutinees))
@@ -321,15 +321,16 @@ genMatch scrutinees branches
            let se         = withNameSubstitutions substs
 
            gs <- mapM (se . genGuard) guards
-           return (conditions, debugWrap ("genBranch: " ++ show substs) $ vcat gs) -- FIXME
+           return (conditions, debugWrap ("genBranch: " ++ show substs) $ vcat gs) -- FIXME TODO use AlternativeChoice instead of vcat
 
     genGuard  :: Guard -> Asm Doc
     genGuard (Guard t expr)
       = do testE <- genExpr t
            exprSt <- genExpr expr
+           let exprSt' = obj [ "op" .= str "The", "type" .= transformType atTpe, "term" .= exprSt ]
            return $ if isExprTrue t
-                      then exprSt
-                      else ifEqInt testE (text "1") exprSt
+                      then exprSt'
+                      else ifEqInt testE (text "1") exprSt'
                       
     -- | Generates a list of boolish expression for matching the pattern
     genTest :: Name -> (Doc, Pattern) -> Asm ([ConditionDoc], [(TName, Doc)])
