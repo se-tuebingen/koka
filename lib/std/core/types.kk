@@ -396,18 +396,21 @@ pub inline extern local-new<a,s,e>(value:a) : <local<s>|e> local-var<s,a>
   c  "kk_ref_alloc"
   cs inline "new Ref<##1,##2>(#1)"
   js inline "{ value: #1 }"
+  vm "mkRef(Ptr): Ref[Ptr]"
 
 // Assign a new value to a local variable
 pub inline extern local-set<a,s,e>( ^v: local-var<s,a>, assigned: a) : <local<s>|e> ()
   c  "kk_ref_set_borrow"
   cs inline "#1.Set(#2)";
   js inline "((#1).value = #2)"
+  vm "setRef(Ref[Ptr], Ptr): Unit"
 
 // Read the value of a local variable.
 pub inline extern local-get : forall<a,s,e> (v: local-var<s,a>) -> <local<s>|e> a with(hdiv<s,a,e>)
   c  "kk_ref_get"
   cs inline "#1.Value";
   js inline "((#1).value)";
+  vm "getRef(Ref[Ptr]): Ptr"
 
 // _Internal_: if local mutation is unobservable, the `:local` effect can be erased by using the `local-scope` function.
 // See also: _State in Haskell, by Simon Peyton Jones and John Launchbury_.
