@@ -321,7 +321,8 @@ genMatch scrutinees branches atTpe
            let se         = withNameSubstitutions substs
 
            gs <- mapM (se . genGuard) guards
-           return (conditions, debugWrap ("genBranch: " ++ show substs) $ vcat gs) -- FIXME TODO use AlternativeChoice instead of vcat
+           return (conditions, debugWrap ("genBranch: " ++ show substs) 
+                $ obj [ "op" .= str "AlternativeChoice", "choices" .= list gs ])
 
     genGuard  :: Guard -> Asm Doc
     genGuard (Guard t expr)
