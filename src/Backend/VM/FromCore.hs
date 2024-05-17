@@ -128,6 +128,7 @@ transformType (TCon c) | nameModule (typeConName c) == "std/core/types" = case (
   "string" -> tpe "String"
   "bool" -> tpe "Int"
   "int" -> tpe "Int"
+  "int32" -> tpe "Int"
   t -> obj [ "op" .= str "Ptr", "extern_ptr_name" .= (str $ show t) ]
 transformType (TCon c) = obj [ "op" .= str "Ptr", "extern_ptr_name" .= (str $ show $ typeConName c) ]
 transformType (TApp t as) = transformType t
@@ -433,8 +434,8 @@ genExpr expr
                   Nothing -> case extractExtern f of
                    Just (tname,formats)
                      -> case args of
-                         [Lit (LitInt i)] | getName tname `elem` [nameByte, nameInt32,nameSSizeT,nameInternalInt32,nameInternalSSizeT, nameInt64, nameIntPtrT]
-                           -> return (pretty i)
+                         [Lit (LitInt i)] | getName tname `elem` intTypes
+                           -> return $ obj [ "op" .= str "Literal", "type" .= tpe "Int", "value" .= pretty i ]
                          _ -> -- genInlineExternal tname formats argDocs
                               do (argDocs) <- genExprs args
                                  (doc) <- genExprExternal tname formats argDocs
@@ -542,13 +543,13 @@ genInline expr
               case extractExtern f of
                 Just (tname,formats)
                   -> case args of
-                       [Lit (LitInt i)] | getName tname `elem` [nameInt32,nameSSizeT,nameInternalInt32,nameInternalSSizeT, nameInt64,nameIntPtrT] && isSmallInt i
-                         -> return (pretty i)
+                       [Lit (LitInt i)] | getName tname `elem` intTypes
+                         -> return $ obj [ "op" .= str "Literal", "type" .= tpe "Int", "value" .= pretty i ]
                        _ -> genExprExternal tname formats argDocs
                 Nothing
                   -> case (f,args) of
-                       ((Var tname _),[Lit (LitInt i)]) | getName tname `elem` [nameInt32,nameSSizeT,nameInternalInt32,nameInternalSSizeT,nameInt64,nameIntPtrT] && isSmallInt i
-                         -> return (pretty i)
+                       ((Var tname _),[Lit (LitInt i)]) | getName tname `elem` intTypes && isSmallInt i
+                         -> return $ obj [ "op" .= str "Literal", "type" .= tpe "Int", "value" .= pretty i ]
                        _ -> do fdoc <- genInline f
                                return $ app fdoc argDocs
       _ -> failure ("VM.FromCore.genInline: invalid expression:\n" ++ show expr)
