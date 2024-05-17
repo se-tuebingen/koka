@@ -200,7 +200,7 @@ extern evv-eq(evv0 : evv<e>, evv1 : evv<e> ) : bool
 pub inline extern @evv-at<e,h> ( i : ev-index ) : ev<h>  // pretend total; don't simplify
   c  "kk_evv_at"
   js "$std_core_hnd._evv_at"
-  vm "!sexp:((qualified $\"import$std/core/hnd\":ptr \"elt\" (fun Pure (ptr int) ptr)) ((qualified $\"import$std/core/hnd\":ptr \"getCurrentEvv\" (fun Effectful () ptr))) $arg0:int)"
+  vm "!sexp:((qualified $\"import$std/core/hnd\":ptr \"elt\" (fun Pure (ptr int) ptr)) (\"promote_ptr\" ((qualified $\"import$std/core/hnd\":ptr \"getCurrentEvv\" (fun Effectful () ptr)))) $arg0:int)"
 
 // (dynamically) find evidence insertion/deletion index in the evidence vector
 // The compiler optimizes `@evv-index` to a static index when apparent from the effect type.
