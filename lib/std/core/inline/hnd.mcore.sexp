@@ -15,6 +15,21 @@
       ("setRef(Ref[Ptr], Ptr): Unit" $ref:ptr $evv:ptr)
       $old:ptr)))
   :export-as ("swapCurrentEvv"))
+(define $evvSwapCreate1:(fun Effectful (int) ptr) (lambda ($n:int)
+  (letrec ((define $cur:ptr ($getCurrentEvv:(fun Effectful () ptr)))
+           (define $ev:ptr ($elt:top $cur:ptr $n:int))
+           (define $next:ptr (make $evv $cons ($ev:ptr (make $evv $nil ())))))
+    (begin
+      ($setCurrentEvv:(fun Effectful (ptr) unit) $next:ptr)
+      $cur:ptr)))
+  :export-as ("evvSwapCreate1"))
+(define $evvSwapCreate0:(fun Effectful () ptr) (lambda ()
+  (letrec ((define $cur:ptr ($getCurrentEvv:(fun Effectful () ptr)))
+           (define $next:ptr (make $evv $nil ())))
+    (begin
+      ($setCurrentEvv:(fun Effectful (ptr) unit) $next:ptr)
+      $cur:ptr)))
+  :export-as ("evvSwapCreate0"))
 
 ;; List utilities
 ;; --------------

@@ -112,6 +112,9 @@ coreOptimize flags newtypes gamma inlines coreProgram
           -- trace (show progName ++ ": monadic transform") $
           do Core.Monadic.monTransform penv
              openResolve penv gamma           -- must be after monTransform
+
+        when (target flags == VM) $ openResolve penv gamma
+
         checkCoreDefs "monadic transform"
 
         -- simplify open applications (needed before inlining open defs)

@@ -262,12 +262,14 @@ extern evv-swap-delete( i : ev-index, behind : bool ) : e1 evv<e>
 inline extern evv-swap-create0() : e evv<e>  //not quite the right effect type but avoids unbound effect types
   c  "kk_evv_swap_create0"
   js "$std_core_hnd._evv_swap_create0"
+  vm "!sexp:((qualified $\"import$std/core/hnd\":ptr \"evvSwapCreate0\" (fun Effectful () ptr)))"
 
 // Swap the current evidence vector with a singleton vector (with the evidence at current index `i`).
 // (this is common in open calls to switch to a singleton effect context when calling operations)
 inline extern evv-swap-create1( i : ev-index ) : e evv<e>  //not quite the right effect type but avoids unbound effect types
   c  "kk_evv_swap_create1"
   js "$std_core_hnd._evv_swap_create1"
+  vm "!sexp:((qualified $\"import$std/core/hnd\":ptr \"evvSwapCreate1\" (fun Effectful (int) ptr)) $arg0:ptr)"
 
 // Swap the current evidence vector with a new vector consisting of evidence
 // at indices `indices` in the current vector.
@@ -314,7 +316,7 @@ extern yield-prompt( m: marker<e,r> ) : yld<e,a,r>
   js "_yield_prompt"
   vm "!sexp:(reset ($arg0:ptr $ignore:ptr) $std/core/hnd/Pure:ptr (($ret:ptr) $ret:ptr))"
 
-extern yield-to-prim( m : marker<e1,r>, clause : (resume-result<b,r> -> e1 r) -> e1 r ) : e (() -> b)
+noinline extern yield-to-prim( m : marker<e1,r>, clause : (resume-result<b,r> -> e1 r) -> e1 r ) : e (() -> b)
   c  "kk_yield_to"
   js "$std_core_hnd._yield_to"
 
