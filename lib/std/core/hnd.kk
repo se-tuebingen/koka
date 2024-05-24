@@ -337,8 +337,10 @@ noinline fun yield-to( m : marker<e1,r>, clause : (resume-result<b,r> -> e1 r) -
     f()
 
 noinline fun @yield-to-vm( m : marker<e1,r>, clause : (b -> e1 r) -> e1 r ) : e1 b
-  //val w0 = evv-get()
-  @yield-to-prim-vm(m, clause)
+  val w0 = evv-get()
+  val r = @yield-to-prim-vm(m, clause)
+  evv-set(w0)
+  r
 
 pub type yield-info
 
