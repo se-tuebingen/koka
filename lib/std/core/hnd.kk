@@ -177,7 +177,7 @@ extern fresh-marker-named() : marker<e,a>
 extern evv-insert( evv : evv<e1>, ev : ev<h> ) : e1 evv<e2>
   c  "kk_evv_insert"
   js "_evv_insert"
-  vm "!sexp:(make $evv $cons ($arg1:ptr $arg0:ptr))"
+  vm "!sexp:($evvInsert:(fun Pure (ptr ptr) ptr) $arg0:ptr $arg1:ptr)"
 
 // show evidence for debug purposes
 extern evv-show( evv : evv<e> ) : string
@@ -207,6 +207,7 @@ pub inline extern @evv-at<e,h> ( i : ev-index ) : ev<h>  // pretend total; don't
 pub extern @evv-index<e::E,h>( htag : htag<h> ) : e ev-index
   c  "kk_evv_index"
   js "__evv_index"
+  vm "!sexp:($evvIndex:(fun Pure (ptr ptr int) int) ($getCurrentEvv:(fun Effectful (ptr) ptr)) $arg0:ptr 0)"
 
 // Get the current evidence vector.
 extern evv-get() : e evv<e>

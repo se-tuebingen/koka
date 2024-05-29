@@ -30,6 +30,32 @@
       ($setCurrentEvv:(fun Effectful (ptr) unit) $next:ptr)
       $cur:ptr)))
   :export-as ("evvSwapCreate0"))
+(define $evHtag:(fun Pure (ptr) str) (lambda ($ev:ptr)
+  (project (project $ev:ptr $std/core/hnd/ev $std/core/hnd/Ev 0)
+    $std/core/hnd/htag $std/core/hnd/Htag 0)))
+(define $evvInsert:(fun Pure (ptr ptr) ptr) (lambda ($evv:ptr $ev:ptr)
+  (match ($evv:ptr $evv) 
+     ($cons ($fst:ptr $rst:ptr)
+        (switch ("infixGt(String, String): Boolean" 
+                   ($evHtag:(fun Pure (ptr) str) $ev:ptr)
+                   ($evHtag:(fun Pure (ptr) str) $fst:ptr))
+          (1 (make $evv $cons (
+                $fst:ptr
+                ($evvInsert:(fun Pure (ptr ptr) ptr) $rst:ptr $ev:ptr))))
+          (_ (make $evv $cons ($ev:ptr $evv:ptr)))))
+     (_ () (make $evv $cons ($ev:ptr $evv:ptr)))))
+  :export-as ("evvInsert"))
+(define $evvIndex:(fun Pure (ptr ptr int) int) (lambda ($evv:ptr $htag:ptr $acc:int) ;; Find by htag
+  (match ($evv:ptr $evv)
+    ($cons ($fst:ptr $rst:ptr)
+      (switch ("infixEq(String, String): Boolean"
+                 (project $htag:ptr $std/core/hnd/htag $std/core/hnd/Htag 0)
+                 ($evHtag:(fun Pure (ptr) str) $fst:ptr))
+        (1 $acc:int)
+        (_ ($evvIndex:(fun Pure (ptr ptr int) int) $rst:ptr $htag:ptr 
+             ("infixAdd(Int, Int): Int" $acc:int 1)))))
+    (_ () ("!undefined:no evidence for htag"))))
+  :export-as ("evvIndex"))
 
 ;; List utilities
 ;; --------------
