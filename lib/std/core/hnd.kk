@@ -508,6 +508,14 @@ pub inline fun local-var(init:a, action: (l:local-var<s,a>) -> <local<s>|e> b ) 
     val res = cast-ev1(action)(std/core/types/@byref(loc))
     prompt-local-var(std/core/types/@byref(loc),res)
 
+extern @prompt-local-var-prim-vm(init: a, action: (l:local-var<s,a>) -> <local<s>|e> b): <local<s>|e> b
+  vm "!sexp:(debugWrap \"prompt-local-var-prim\" (reset ((fresh-label) $reg:ptr) (the top (letref ($ref:ptr $reg:ptr $arg0:top) ($arg1:top $ref:ptr))) (($res:top) $res:top)))"
+  c inline "kk_box_null()"
+  js inline "undefined"
+
+pub fun local-var-vm(init:a, action: (l:local-var<s,a>) -> <local<s>|e> b ) : <local<s>|e> b
+  @prompt-local-var-prim-vm(init, action)
+
 
 // -------------------------------------------
 // Finally

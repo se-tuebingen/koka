@@ -154,6 +154,7 @@ module Common.NamePrim
           , nameTpRef, nameRef
           , nameTpLocalVar, nameTpLocal
           , nameLocalVar, nameRunLocal, nameLocalSet, nameLocalGet, nameLocalNew
+          , nameLocalVarVM
 
 
           , nameTpOptional
@@ -399,6 +400,7 @@ nameTpLocal     = coreTypesName "local"
 nameRef         = coreTypesName "ref"
 nameLocalNew    = coreTypesName "local-new"
 nameLocalVar    = coreHndName   "local-var"
+nameLocalVarVM  = coreHndName   "local-var-vm"
 nameRunLocal    = coreTypesName "local-scope"
 
 nameTpTotal     = nameEffectEmpty -- coreTypesName "total"

@@ -154,6 +154,7 @@ switchNames =
   -- , (nameNamedHandle, nameNamedHandleVM)
   , (nameYieldTo, nameYieldToVM)
   , (nameProtect, nameProtectVM)
+  , (nameLocalVar, nameLocalVarVM)
   ]
 
 genDef :: Bool -> Def -> Asm Doc
