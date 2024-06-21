@@ -322,7 +322,7 @@ noinline extern yield-to-prim( m : marker<e1,r>, clause : (resume-result<b,r> ->
   js "$std_core_hnd._yield_to"
 
 extern @yield-to-prim-vm( m : marker<e1,r>, clause : (b -> e1 r) -> e1 r ) : e b
-  vm "!sexp:(debugWrap \"yield-to-prim\" (shift:top ($arg0:ptr 0) ($resume:ptr) ($arg1:ptr (lambda ($val:top) (debugWrap \"Resuming\" (resume $resume:ptr $val:top) ) )))) )"
+  vm "!sexp:(debugWrap \"yield-to-prim\" (shift:top ($arg0:ptr 0) ($resume:top) ($arg1:ptr (lambda ($val:top) (debugWrap \"Resuming\" (resume $resume:ptr $val:top) ) )))) )"
   c inline "kk_box_null()"
   js inline "undefined"
 
@@ -608,7 +608,7 @@ abstract value type clause1<a::V,b::V,h::(E,V)->V,e::E,r::V>
 
 inline extern cast-clause0( f : (marker<e1,r>,ev<h>) -> e1 b) : e ((marker<e1,r>,ev<h>) -> e b)
   inline "#1"
-  vm "!sexp:(debugWrap \"cast-clause0\" $arg0:ptr)"
+  vm "!sexp:(debugWrap \"cast-clause0\" $arg0:top)"
 
 inline extern cast-clause1( f : (marker<e1,r>,ev<h>,a) -> e1 b) : e ((marker<e1,r>,ev<h>,a) -> e b)
   inline "#1"
