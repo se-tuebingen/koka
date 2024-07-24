@@ -257,6 +257,7 @@ inline extern evv-swap<e1,e2>( w : evv<e1> ) : e evv<e2>
 extern evv-swap-delete( i : ev-index, behind : bool ) : e1 evv<e>
   c  "kk_evv_swap_delete"
   js "_evv_swap_delete"
+  vm "!sexp:($evvSwapDelete:(fun Effectful (int int) ptr) $arg0:int $arg1:int)"
 
 // Swap the current evidence vector with an empty vector.
 // (this is used in open calls to switch to a total context)

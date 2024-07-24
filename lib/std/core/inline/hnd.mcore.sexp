@@ -30,9 +30,28 @@
       ($setCurrentEvv:(fun Effectful (ptr) unit) $next:ptr)
       $cur:ptr)))
   :export-as ("evvSwapCreate0"))
+(define $evvSwapDelete:(fun Effectful (int int) ptr) (lambda ($i:int $behind:int)
+  (letrec ((define $cur:ptr ($getCurrentEvv:(fun Effectful () ptr)))
+           (define $next:ptr ($evvDelete:(fun Pure (int ptr) ptr) ("infixAdd(Int, Int): Int" $i:int $behind:int) $cur:ptr)))
+    (begin
+      ($setCurrentEvv:(fun Effectful (ptr) unit) $next:ptr)
+      $cur:ptr)))
+  :export-as ("evvSwapDelete"))
 (define $evHtag:(fun Pure (ptr) str) (lambda ($ev:ptr)
   (project (project $ev:ptr $std/core/hnd/ev $std/core/hnd/Ev 0)
     $std/core/hnd/htag $std/core/hnd/Htag 0)))
+
+;; make primitive?
+(define $evvDelete:(fun Pure (int int ptr) ptr) (lambda ($i:int $evv:ptr)
+  (match ($evv:ptr $evv)
+    ($cons ($hd:ptr $tl:ptr)
+      (switch $i:int
+        (0 $tl:ptr)
+        (_ (make $evv $cons (
+              $hd:ptr
+              ($evvDelete:(fun Pure (int int ptr) ptr) ("infixSub(Int, Int): Int" $i:int 1) $tl:ptr))))))
+    (_ () ("panic(String): Bottom" "Out of bounds index into evidence vector"))))
+  :export-as ("evvDelete"))
 (define $evvInsert:(fun Pure (ptr ptr) ptr) (lambda ($evv:ptr $ev:ptr)
   (match ($evv:ptr $evv) 
      ($cons ($fst:ptr $rst:ptr)
